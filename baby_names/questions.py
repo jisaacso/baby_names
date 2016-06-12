@@ -62,11 +62,33 @@ def name_by_gender_for_year(rdd, name, year):
     return probably_from_gender_tup(name_by_gender, 'M')
 
 
+def most_gender_neutral(rdd):
+    total_names = (rdd
+                   .map(lambda line: (line.name, int(line.count)))
+                   .reduceByKey(lambda x,y: x+y))
+
+    name_by_gender = (rdd
+                      .map(lambda line: ((line.name, line.gender),
+                                         int(line.count)))
+                      .reduceByKey(lambda x,y: x+y)
+                      .map(lambda (k, v): (k[0], [k[1], v])))
+    
+    most_neutral = (name_by_gender
+                    .join(total_names)
+                    .filter(lambda (name, tup): not tup[0][1] == tup[1])
+                    .filter(lambda (name, tup): tup[0][0] == 'M')
+                    .map(lambda (name, tup): (name, tup[1], tup[0][1] / float(tup[1])))
+                    .filter(lambda tup: tup[2] == 0.5)
+                    .takeOrdered(10, key=lambda tup: -tup[1]))
+    return most_neutral
+
+
 def write_stats(fname, stats):
     print stats
     with open(fname, 'w') as fout:
         if type(stats) == list:
             for stat in stats:
+                stat = [str(thing) for thing in stat]
                 fout.write(','.join(stat) + '\n')
         else:
             fout.write('%s' % stats)
@@ -81,10 +103,11 @@ if __name__ == '__main__':
            .map(lambda line: line.split(','))
            .map(lambda line: nametup(*line)))
 
-    #num_baracks, max_year = num_baracks_by_year(rdd)
-    #write_stats(os.path.join(outdir, 'num_baracks_by_year'), num_baracks)
-    #write_stats(os.path.join(outdir, 'year_with_most_baracks'), max_year)
-
+    """
+    num_baracks, max_year = num_baracks_by_year(rdd)
+    write_stats(os.path.join(outdir, 'num_baracks_by_year'), num_baracks)
+    write_stats(os.path.join(outdir, 'year_with_most_baracks'), max_year)
+    
     pr_jordan_2003 = name_by_gender_for_year(rdd, 'Jordan', 2003)
     write_stats(os.path.join(outdir, 'jordan_2003'), pr_jordan_2003)
 
@@ -96,4 +119,7 @@ if __name__ == '__main__':
 
     pr_tesla_2013 = name_by_gender_for_year(rdd, 'Tesla', 2013)
     write_stats(os.path.join(outdir, 'tesla_2013'), pr_tesla_2013)
+    """
 
+    gender_neutral = most_gender_neutral(rdd)
+    write_stats(os.path.join(outdir, 'most_gender_neutral'), gender_neutral)

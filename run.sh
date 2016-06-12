@@ -1,7 +1,7 @@
 #!/bin/bash -x
 
 export MASTER='local[4]'
-export SPARK_HOME='thirdparty/spark-1.6.0-bin-hadoop2.6'
+export SPARK_HOME='thirdparty/spark-1.6.1-bin-hadoop2.6'
 export PYSPARK_PYTHON=ipython
 
 $SPARK_HOME/bin/pyspark \
